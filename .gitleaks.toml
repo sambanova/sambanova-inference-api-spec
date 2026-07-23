@@ -1,0 +1,5 @@
+# Gitleaks config for sambanova-inference-api-spec. Extends the built-in default ruleset.
+title = "sambanova-inference-api-spec gitleaks config"
+
+[extend]
+useDefault = true
