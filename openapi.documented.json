@@ -666,6 +666,7 @@
                 "enum": [
                   "DeepSeek-V3.1",
                   "DeepSeek-V3.2",
+                  "GLM-5.3",
                   "Meta-Llama-3.3-70B-Instruct",
                   "MiniMax-M3",
                   "MiniMax-M3.1-Flash",
@@ -1593,6 +1594,7 @@
                 "enum": [
                   "DeepSeek-V3.1",
                   "DeepSeek-V3.2",
+                  "GLM-5.3",
                   "Meta-Llama-3.3-70B-Instruct",
                   "MiniMax-M3",
                   "MiniMax-M3.1-Flash",
@@ -2713,8 +2715,7 @@
       "ResponseRequest": {
         "title": "Response Request",
         "type": "object",
-        "description": "responses request object",
-        "additionalProperties": true,
+        "description": "responses request object. Unknown fields are ignored.",
         "properties": {
           "model": {
             "title": "Model",
@@ -2723,6 +2724,7 @@
               { "type": "string" },
               {
                 "enum": [
+                  "GLM-5.3",
                   "MiniMax-M3",
                   "MiniMax-M3.1-Flash",
                   "gemma-4-31B-it",
@@ -2843,18 +2845,16 @@
           "frequency_penalty": {
             "title": "Frequency Penalty",
             "type": "number",
-            "description": "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim. Not currently implemented; accepted for API compatibility and echoed in the response.",
-            "minimum": -2,
-            "maximum": 2,
+            "description": "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim. Not currently implemented; only `0` is accepted and any other value returns a `400` error. Echoed in the response.",
+            "enum": [0],
             "default": 0,
             "nullable": true
           },
           "presence_penalty": {
             "title": "Presence Penalty",
             "type": "number",
-            "description": "Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics. Not currently implemented; accepted for API compatibility and echoed in the response.",
-            "minimum": -2,
-            "maximum": 2,
+            "description": "Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics. Not currently implemented; only `0` is accepted and any other value returns a `400` error. Echoed in the response.",
+            "enum": [0],
             "default": 0,
             "nullable": true
           },
@@ -2863,7 +2863,6 @@
             "type": "array",
             "description": "Tools available to the model. Only type: \"function\" is supported; all other tool types are filtered server-side.",
             "items": { "$ref": "#/components/schemas/ResponseTool" },
-            "nullable": true,
             "maxItems": 128
           },
           "parallel_tool_calls": {
@@ -2914,13 +2913,6 @@
             "description": "Included for API compatibility, but only echoed back in response ",
             "nullable": true
           },
-          "metadata": {
-            "title": "Metadata",
-            "type": "object",
-            "description": "Included for API compatibility, but not supported",
-            "nullable": true,
-            "additionalProperties": { "type": "string" }
-          },
           "store": {
             "title": "Store",
             "type": "boolean",
@@ -2934,18 +2926,6 @@
             "description": "Accepted for API compatibility and echoed in the response. Context truncation behavior is not currently configurable via this field in SambaNova.",
             "enum": ["auto", "disabled"],
             "default": "disabled",
-            "nullable": true
-          },
-          "previous_response_id": {
-            "title": "Previous Response ID",
-            "type": "string",
-            "description": "Not supported. SambaNova is stateless and does not maintain server-side conversation state. Accepted for API compatibility but ignored; clients must supply the full conversation history in input[].",
-            "nullable": true
-          },
-          "background": {
-            "title": "Background",
-            "type": "boolean",
-            "description": "Accepted for API compatibility and echoed back in the response. Has no effect on server behavior.",
             "nullable": true
           },
           "service_tier": {
@@ -5748,6 +5728,7 @@
                 "enum": [
                   "DeepSeek-V3.1",
                   "DeepSeek-V3.2",
+                  "GLM-5.3",
                   "Meta-Llama-3.3-70B-Instruct",
                   "MiniMax-M3",
                   "MiniMax-M3.1-Flash",
@@ -5793,9 +5774,9 @@
           "top_k": {
             "title": "Top K",
             "type": "integer",
-            "minimum": 0,
+            "minimum": 1,
             "nullable": true,
-            "description": "Top-k sampling. Considers only the K most likely tokens at each step. Set to 0 to disable."
+            "description": "Top-k sampling. Considers only the K most likely tokens at each step. Must be at least 1."
           },
           "stop_sequences": {
             "title": "Stop Sequences",
@@ -6506,8 +6487,8 @@
       "MessageCountTokensRequest": {
         "title": "Message Count Tokens Request",
         "type": "object",
-        "description": "Request body for `POST /messages/count_tokens`. Returns the input token count for a prompt without generating output. Same prompt shape as `MessageCreateRequest` minus generation-time parameters (`max_tokens`, `stream`, sampling, `stop_sequences`, `metadata`, `service_tier`, etc.).",
-        "additionalProperties": true,
+        "description": "Request body for `POST /messages/count_tokens`. Returns the input token count for a prompt without generating output. Same prompt shape as `MessageCreateRequest` minus generation-time parameters (`max_tokens`, `stream`, sampling, `stop_sequences`, `metadata`, `service_tier`, etc.). Unknown fields are rejected with a `400` error.",
+        "additionalProperties": false,
         "properties": {
           "model": {
             "title": "Model",
@@ -6528,12 +6509,10 @@
             "title": "Tools",
             "type": "array",
             "items": { "$ref": "#/components/schemas/MessageTool" },
-            "nullable": true,
             "description": "Tool definitions the model may call."
           },
           "tool_choice": {
             "allOf": [{ "$ref": "#/components/schemas/MessageToolChoice" }],
-            "nullable": true,
             "description": "Controls how the model selects from `tools`."
           }
         },
@@ -7199,11 +7178,11 @@
         "x-codeSamples": [
           {
             "lang": "JavaScript",
-            "source": "import SambaNova from 'sambanova';\n\nconst client = new SambaNova({\n  apiKey: process.env['SAMBANOVA_API_KEY'], // This is the default and can be omitted\n});\n\nconst response = await client.responses.create({\n  input: [\n    {\n      content: 'What is the weather in San Francisco?',\n      role: 'user',\n      type: 'message',\n    },\n    {\n      content: [\n        { text: 'The weather in San Francisco is 65°F and partly cloudy.', type: 'output_text' },\n      ],\n      role: 'assistant',\n      type: 'message',\n    },\n    {\n      content: 'What should I wear?',\n      role: 'user',\n      type: 'message',\n    },\n  ],\n  model: 'MiniMax-M3',\n});\n\nconsole.log(response);"
+            "source": "import SambaNova from 'sambanova';\n\nconst client = new SambaNova({\n  apiKey: process.env['SAMBANOVA_API_KEY'], // This is the default and can be omitted\n});\n\nconst response = await client.responses.create({\n  input: [\n    {\n      content: 'What is the weather in San Francisco?',\n      role: 'user',\n      type: 'message',\n    },\n    {\n      content: [\n        { text: 'The weather in San Francisco is 65°F and partly cloudy.', type: 'output_text' },\n      ],\n      role: 'assistant',\n      type: 'message',\n    },\n    {\n      content: 'What should I wear?',\n      role: 'user',\n      type: 'message',\n    },\n  ],\n  model: 'GLM-5.3',\n});\n\nconsole.log(response);"
           },
           {
             "lang": "Python",
-            "source": "import os\nfrom sambanova import SambaNova\n\nclient = SambaNova(\n    api_key=os.environ.get(\"SAMBANOVA_API_KEY\"),  # This is the default and can be omitted\n)\nfor response in client.responses.create(\n    input=[{\n        \"content\": \"What is the weather in San Francisco?\",\n        \"role\": \"user\",\n        \"type\": \"message\",\n    }, {\n        \"content\": [{\n            \"text\": \"The weather in San Francisco is 65°F and partly cloudy.\",\n            \"type\": \"output_text\",\n        }],\n        \"role\": \"assistant\",\n        \"type\": \"message\",\n    }, {\n        \"content\": \"What should I wear?\",\n        \"role\": \"user\",\n        \"type\": \"message\",\n    }],\n    model=\"MiniMax-M3\",\n):\n  print(response)"
+            "source": "import os\nfrom sambanova import SambaNova\n\nclient = SambaNova(\n    api_key=os.environ.get(\"SAMBANOVA_API_KEY\"),  # This is the default and can be omitted\n)\nfor response in client.responses.create(\n    input=[{\n        \"content\": \"What is the weather in San Francisco?\",\n        \"role\": \"user\",\n        \"type\": \"message\",\n    }, {\n        \"content\": [{\n            \"text\": \"The weather in San Francisco is 65°F and partly cloudy.\",\n            \"type\": \"output_text\",\n        }],\n        \"role\": \"assistant\",\n        \"type\": \"message\",\n    }, {\n        \"content\": \"What should I wear?\",\n        \"role\": \"user\",\n        \"type\": \"message\",\n    }],\n    model=\"GLM-5.3\",\n):\n  print(response)"
           }
         ]
       }
