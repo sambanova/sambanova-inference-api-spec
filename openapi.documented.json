@@ -2910,7 +2910,7 @@
           "user": {
             "title": "User",
             "type": "string",
-            "description": "Included for API compatibility, but only echoed back in response ",
+            "description": "Included for API compatibility. Only echoed back in the response.",
             "nullable": true
           },
           "store": {
